@@ -1,18 +1,21 @@
 package main
 
-import{
-	"github.com/velcro-ie/RWCWhen"
+import (
+	rwcwhen "RWCWhen"
+	"fmt"
+	"os"
+
 	"github.com/spf13/cobra"
-}
+)
 
 var (
-	country       string
-	group    	string
+	country string
+	group   string
 )
 
 func init() {
-	rootCmd.Flags().StringArrayVarP(&country, "country", "c", "", "country to search for")
 	rootCmd.Flags().StringVarP(&group, "group", "g", "", "group to search for")
+	rootCmd.Flags().StringVarP(&country, "country", "c", "", "country to search for")
 }
 
 var rootCmd = &cobra.Command{
