@@ -1,15 +1,20 @@
 package rwcwhen
 
 import (
-	"log")
+	"log"
+)
 
 var (
 	RwcWhenVersion string
 )
 
-func Run(country string, group string){
-	log.Println("Entered Country: &v", country )
-	log.Println("Entered Group: &v", group )
+func Run(country string, group string) {
+	if country != "" {
+		log.Println("Entered Country: &v", country)
+	}
+	if group != "" {
+		log.Println("Entered Group: &v", group)
+	}
 }
 
 func GetVersion() string {
