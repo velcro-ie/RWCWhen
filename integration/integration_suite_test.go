@@ -23,13 +23,23 @@ var (
 func TestRWCWhen(t *testing.T) {
 	RegisterFailHandler(Fail)
 
+	BeforeSuite(func() {
+		var (
+			err error
+		)
+
+		// pathToBin, err = gexec.Build("github.com/velcro-ie/RWCWhen")
+		pathToBin, err = gexec.Build("../cmd/rwcwhen")
+		Expect(err).ToNot(HaveOccurred())
+	})
+
 	AfterSuite(func() {
 		os.RemoveAll(pathToGitRepo)
 		gexec.Kill()
 		gexec.CleanupBuildArtifacts()
 	})
 
-	RunSpecs(t, "deplab Suite")
+	RunSpecs(t, "RWCWhen Suite")
 }
 
 func runRWCWhen(args []string, expErrCode int) (stdOut *bytes.Reader, stdErr *bytes.Reader) {

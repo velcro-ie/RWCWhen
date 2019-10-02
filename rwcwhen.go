@@ -1,8 +1,6 @@
 package rwcwhen
 
-import (
-	"log"
-)
+import "fmt"
 
 var (
 	RwcWhenVersion string
@@ -10,10 +8,10 @@ var (
 
 func Run(country string, group string) {
 	if country != "" {
-		log.Println("Entered Country: &v", country)
+		fmt.Println("Entered Country: ", country)
 	}
 	if group != "" {
-		log.Println("Entered Group: &v", group)
+		fmt.Println("Entered Group: ", group)
 	}
 }
 
