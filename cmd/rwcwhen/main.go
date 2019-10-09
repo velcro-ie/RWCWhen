@@ -1,11 +1,11 @@
 package main
 
 import (
-	rwcwhen "RWCWhen"
 	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
+	"rwcwhen/rwcwhen"
 )
 
 var (

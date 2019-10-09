@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"encoding/json"
+	"rwcwhen/structs"
 )
 
 var (
@@ -20,6 +22,12 @@ func Run(country string, group string) {
 			data, _ := ioutil.ReadAll(response.Body)
 			fmt.Println(string(data))
 		}
+		var dat structs.AllJson
+
+	    if err := json.Unmarshal(response, &dat); err != nil {
+        	panic(err)
+		}
+		fmt.Println(dat)
 		// jsonData := map[string]string{"firstname": "Nic", "lastname": "Raboy"}
 		// jsonValue, _ := json.Marshal(jsonData)
 	}
