@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"rwcwhen/rwcwhen"
 )
 
 var (
@@ -24,13 +23,13 @@ var rootCmd = &cobra.Command{
 	Long: `This is learning project on golang to assist in getting the results
 			of the 2019 Rugby World Cup. It deals with both teams and groups 
 			you can see the full documentation here: https://github.com/velcro-ie/RWCWhen`,
-	Version: rwcwhen.GetVersion(),
+	Version: GetVersion(),
 
 	Run: run,
 }
 
 func run(cmd *cobra.Command, args []string) {
-	rwcwhen.Run(country, group)
+	RunAll(country, group)
 }
 
 func main() {
