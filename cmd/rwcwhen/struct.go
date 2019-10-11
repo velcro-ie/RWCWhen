@@ -68,7 +68,7 @@ type WeatherDetails struct {
 }
 
 type UpcomingMatches struct {
-	Time     TimeDetails `json:time`
-	Venue    string      `json:venue`
-	Opponent string      `json:opponent`
+	Time     TimeDetails `json:"time"`
+	Venue    string      `json:"venue"`
+	Opponent string      `json:"opponent"`
 }
