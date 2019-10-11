@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"net/http"
+	"log"
+	"os"
 )
 
 var (
@@ -18,8 +19,9 @@ func RunAll(country string, group string) {
 		panic(err)
 	}
 	if country != "" {
+		_, _ = getCountryData(country, allJsonData)
 		fmt.Println("Entered Country: ", country)
-		fmt.Println(allJsonData)
+		// fmt.Println(matchDetails)
 	}
 	if group != "" {
 		fmt.Println("Entered Group: ", group)
@@ -38,12 +40,18 @@ func GetApiData() (AllJson, error) {
 	var data []byte
 	var jsonData AllJson
 
-	response, err := http.Get("https://cmsapi.pulselive.com/rugby/event/1558/schedule")
+	response, err := os.Open("./apiExample.json")
 	if err != nil {
-		return jsonData, fmt.Errorf("The HTTP request failed with error %s\n", err)
+		return jsonData, fmt.Errorf("Error getting the json from the file: %s\n", err)
 	}
+	defer response.Close()
 
-	data, err = ioutil.ReadAll(response.Body)
+	// response, err := http.Get("https://cmsapi.pulselive.com/rugby/event/1558/schedule")
+	// if err != nil {
+	// 	return jsonData, fmt.Errorf("The HTTP request failed with error %s\n", err)
+	// }
+
+	data, err = ioutil.ReadAll(response)
 	if err != nil {
 		return jsonData, fmt.Errorf("Could not read api data into buffer: %s\n", err)
 	}
@@ -54,4 +62,16 @@ func GetApiData() (AllJson, error) {
 	}
 
 	return jsonData, nil
+}
+
+func getCountryData(country string, apiData AllJson) (matchDetails MatchDetails, err error) {
+	for _, match := range apiData.Matches {
+		for _, ctry := range match.Teams {
+			if ctry.Name == country {
+				log.Println("this is a match: ", match.Time)
+			}
+		}
+	}
+	log.Println(len(apiData.Matches))
+	return matchDetails, nil
 }
