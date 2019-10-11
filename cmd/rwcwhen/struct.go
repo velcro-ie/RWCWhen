@@ -66,3 +66,9 @@ type WeatherDetails struct {
 	MatchWindConditions  string `json:"matchWindConditions"`
 	MatchPitchConditions string `json:"matchPitchConditions"`
 }
+
+type UpcomingMatches struct {
+	Time     TimeDetails `json:time`
+	Venue    string      `json:venue`
+	Opponent string      `json:opponent`
+}

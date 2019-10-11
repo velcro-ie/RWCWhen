@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -29,7 +30,10 @@ var rootCmd = &cobra.Command{
 }
 
 func run(cmd *cobra.Command, args []string) {
-	RunAll(country, group)
+	err := RunAll(country, group)
+	if err != nil {
+		log.Println(err)
+	}
 }
 
 func main() {
