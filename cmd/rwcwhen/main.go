@@ -12,12 +12,16 @@ var (
 	country  string
 	group    string
 	upcoming bool
+	played   bool
+	games    bool
 )
 
 func init() {
 	rootCmd.Flags().StringVarP(&group, "group", "g", "", "group to search for")
 	rootCmd.Flags().StringVarP(&country, "country", "c", "", "country to search for")
 	rootCmd.Flags().BoolVarP(&upcoming, "upcoming", "u", false, "return upcoming matches in a group")
+	rootCmd.Flags().BoolVarP(&games, "games", "m", false, "return all future games")
+	rootCmd.Flags().BoolVarP(&played, "Played", "p", false, "return all played matches (can be run for a country)")
 }
 
 var rootCmd = &cobra.Command{
@@ -32,7 +36,7 @@ var rootCmd = &cobra.Command{
 }
 
 func run(cmd *cobra.Command, args []string) {
-	err := RunAll(country, group, upcoming)
+	err := RunAll(country, group, upcoming, played, games)
 	if err != nil {
 		log.Println(err)
 	}

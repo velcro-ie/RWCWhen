@@ -6,7 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"strings"
+	"strconv"
 	"time"
 )
 
@@ -14,22 +14,27 @@ var (
 	RwcWhenVersion string
 )
 
-func RunAll(country string, group string, upcoming bool) (err error) {
+func RunAll(country string, group string, matches bool, played bool, games bool) (err error) {
 	allJsonData, err := GetApiData()
 	if err != nil {
 		return err
 	}
 	if country != "" {
-		remainingMatches, err := getCtryNextMatches(country, allJsonData)
+		matchDetails, err := getCtrysMatches(country, allJsonData, played)
 		if err != nil {
 			return err
+		} else if len(matchDetails) == 0 {
+			return fmt.Errorf("There are no matches to display for: %s", country)
 		}
-		fmt.Println(remainingMatches)
-		fmt.Printf("The upcoming matches for %s are \n", country)
-		for _, match := range remainingMatches {
-			fmt.Printf("%s vs %s playing at %s in %s.\n", country, match.Opponent, match.Time.Label, match.Venue)
+
+		if played {
+			fmt.Printf("%s's upcoming matches are \n", country)
+			printPastMatches(matchDetails)
+		} else {
+			fmt.Printf("%s's upcoming matches are \n", country)
+			printFutureMatches(matchDetails)
 		}
-	} else if group != "" && !upcoming {
+	} else if group != "" && !matches {
 		teams, err := getTeamsInGroup(group, allJsonData)
 		if err != nil {
 			return err
@@ -38,22 +43,35 @@ func RunAll(country string, group string, upcoming bool) (err error) {
 		for _, team := range teams {
 			fmt.Printf("%s, %s\n", team.Name, team.Abbreviation)
 		}
-	} else if group != "" && upcoming {
+	} else if group != "" && matches {
 		matches, err := getNextMatchesInGroup(group, allJsonData)
 		if err != nil {
 			return err
 		}
 		if len(matches) == 0 {
-			fmt.Printf("The matches remaining in %s\n", group)
+			fmt.Printf("There are no matches remaining in %s\n", group)
 		} else {
 			fmt.Printf("The remaining matches in %s are: \n", group)
-			for _, match := range matches {
-				fmt.Printf("%s vs %s playing at %s in %s.\n",
-					match.Teams[0].Name,
-					match.Teams[0].Name,
-					match.Time.Label,
-					match.Venue.Name)
+			printFutureMatches(matches)
+		}
+	} else if games {
+		matchDetails := getAllMatches(allJsonData, played)
+		if len(matchDetails) == 0 {
+			if played {
+				fmt.Println("The tournament has not started yet. No Matches have been played.")
+				return nil
+			} else {
+				fmt.Println("The tournament has finished. No Matches remain to be played.")
+				return nil
 			}
+		}
+
+		if played {
+			fmt.Printf("The upcoming matches are: \n")
+			printPastMatches(matchDetails)
+		} else {
+			fmt.Printf("All played matches are: \n")
+			printFutureMatches(matchDetails)
 		}
 	}
 	return nil
@@ -94,45 +112,24 @@ func GetApiData() (AllJson, error) {
 	return jsonData, nil
 }
 
-func getCtryNextMatches(country string, apiData AllJson) (upcoming []UpcomingMatches, err error) {
-	matchDetails, err := getCtrysMatchesFromJson(country, apiData)
-	if err != nil {
-		return upcoming, err
-	}
-	if len(matchDetails) == 0 {
-		return upcoming, fmt.Errorf("%s has no more matches to play", country)
-	}
-	for _, match := range matchDetails {
-		var aMatch UpcomingMatches
-		aMatch.Time = match.Time
-		s := []string{match.Venue.Name, match.Venue.City, match.Venue.Country}
-		aMatch.Venue = strings.Join(s, ", ")
-		if match.Teams[0].Name == country {
-			aMatch.Opponent = match.Teams[1].Name
-		} else {
-			aMatch.Opponent = match.Teams[0].Name
-		}
-		upcoming = append(upcoming, aMatch)
-	}
-	return upcoming, nil
-}
-
-func getCtrysMatchesFromJson(country string, apiData AllJson) (matchDetails []MatchDetails, err error) {
+func getCtrysMatches(country string, apiData AllJson, passed bool) (matches []MatchDetails, err error) {
 	now := time.Now()
 	foundCountry := false
 	for _, match := range apiData.Matches {
 		if match.Teams[0].Name == country || match.Teams[1].Name == country {
 			foundCountry = true
 			startTime := time.Unix(0, match.Time.Millis*int64(time.Millisecond))
-			if now.Before(startTime) {
-				matchDetails = append(matchDetails, match)
+			if now.Before(startTime) && !passed {
+				matches = append(matches, match)
+			} else if now.After(startTime) && passed {
+				matches = append(matches, match)
 			}
 		}
 	}
 	if !foundCountry {
-		return matchDetails, fmt.Errorf("%s is not in the world cup", country)
+		return matches, fmt.Errorf("%s is not in the world cup", country)
 	}
-	return matchDetails, nil
+	return matches, nil
 }
 
 func getTeamsInGroup(group string, allJsonData AllJson) (teams []TeamDetails, err error) {
@@ -172,4 +169,40 @@ func getNextMatchesInGroup(group string, allJsonData AllJson) (matches []MatchDe
 		return matches, fmt.Errorf("%s is not in the world cup", country)
 	}
 	return matches, nil
+}
+
+func getAllMatches(allJsonData AllJson, played bool) (matches []MatchDetails) {
+	var pastMatches []MatchDetails
+	var futureMatches []MatchDetails
+	now := time.Now()
+	for _, match := range allJsonData.Matches {
+		startTime := time.Unix(0, match.Time.Millis*int64(time.Millisecond))
+		if now.Before(startTime) {
+			futureMatches = append(futureMatches, match)
+		} else {
+			pastMatches = append(pastMatches, match)
+
+		}
+	}
+	if played {
+		return pastMatches
+	}
+	return futureMatches
+}
+
+func printPastMatches(matches []MatchDetails) {
+	for _, match := range matches {
+		fmt.Printf("%s vs %s playing at %s in %s. Final score: %s - %s\n",
+			match.Teams[0].Name, match.Teams[1].Name,
+			match.Time.Label, match.Venue.Name,
+			strconv.Itoa(match.Scores[0]), strconv.Itoa(match.Scores[1]))
+	}
+}
+
+func printFutureMatches(matches []MatchDetails) {
+	for _, match := range matches {
+		fmt.Printf("%s vs %s playing at %s in %s.\n",
+			match.Teams[0].Name, match.Teams[1].Name,
+			match.Time.Label, match.Venue.Name)
+	}
 }

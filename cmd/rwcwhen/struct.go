@@ -27,7 +27,7 @@ type MatchDetails struct {
 	Time        TimeDetails    `json:"time"`
 	Attendance  int32          `json:"attendance"`
 	Teams       []TeamDetails  `json:"teams"`
-	Scores      []int32        `json:"scores"`
+	Scores      []int          `json:"scores"`
 	Kc          string         `json:"kc"`
 	Status      string         `json:"status"`
 	Clock       string         `json:"clock"`
@@ -67,7 +67,7 @@ type WeatherDetails struct {
 	MatchPitchConditions string `json:"matchPitchConditions"`
 }
 
-type UpcomingMatches struct {
+type BriefMatchDetails struct {
 	Time     TimeDetails `json:"time"`
 	Venue    string      `json:"venue"`
 	Opponent string      `json:"opponent"`
