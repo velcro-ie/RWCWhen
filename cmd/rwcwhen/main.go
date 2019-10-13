@@ -9,13 +9,15 @@ import (
 )
 
 var (
-	country string
-	group   string
+	country  string
+	group    string
+	upcoming bool
 )
 
 func init() {
 	rootCmd.Flags().StringVarP(&group, "group", "g", "", "group to search for")
 	rootCmd.Flags().StringVarP(&country, "country", "c", "", "country to search for")
+	rootCmd.Flags().BoolVarP(&upcoming, "upcoming", "u", false, "return upcoming matches in a group")
 }
 
 var rootCmd = &cobra.Command{
@@ -30,7 +32,7 @@ var rootCmd = &cobra.Command{
 }
 
 func run(cmd *cobra.Command, args []string) {
-	err := RunAll(country, group)
+	err := RunAll(country, group, upcoming)
 	if err != nil {
 		log.Println(err)
 	}

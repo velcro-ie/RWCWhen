@@ -14,7 +14,7 @@ var (
 	RwcWhenVersion string
 )
 
-func RunAll(country string, group string) (err error) {
+func RunAll(country string, group string, upcoming bool) (err error) {
 	allJsonData, err := GetApiData()
 	if err != nil {
 		return err
@@ -29,14 +29,32 @@ func RunAll(country string, group string) (err error) {
 		for _, match := range remainingMatches {
 			fmt.Printf("%s vs %s playing at %s in %s.\n", country, match.Opponent, match.Time.Label, match.Venue)
 		}
-	}
-	if group != "" {
+	} else if group != "" && !upcoming {
 		teams, err := getTeamsInGroup(group, allJsonData)
 		if err != nil {
 			return err
 		}
-		fmt.Printf("The teams in %s are: ", group)
-		fmt.Printf(strings.Join(teams, ", "))
+		fmt.Printf("The teams in %s are: \n", group)
+		for _, team := range teams {
+			fmt.Printf("%s, %s\n", team.Name, team.Abbreviation)
+		}
+	} else if group != "" && upcoming {
+		matches, err := getNextMatchesInGroup(group, allJsonData)
+		if err != nil {
+			return err
+		}
+		if len(matches) == 0 {
+			fmt.Printf("The matches remaining in %s\n", group)
+		} else {
+			fmt.Printf("The remaining matches in %s are: \n", group)
+			for _, match := range matches {
+				fmt.Printf("%s vs %s playing at %s in %s.\n",
+					match.Teams[0].Name,
+					match.Teams[0].Name,
+					match.Time.Label,
+					match.Venue.Name)
+			}
+		}
 	}
 	return nil
 }
@@ -117,22 +135,41 @@ func getCtrysMatchesFromJson(country string, apiData AllJson) (matchDetails []Ma
 	return matchDetails, nil
 }
 
-func getTeamsInGroup(group string, allJsonData AllJson) (teams []string, err error) {
-	groups := make(map[string][]string)
+func getTeamsInGroup(group string, allJsonData AllJson) (teams []TeamDetails, err error) {
+	groups := make(map[string][]TeamDetails)
 
 	for _, match := range allJsonData.Matches {
-		groups[match.EventPhase] = appendIfMissing(groups[match.EventPhase], match.Teams[0].Name)
-		groups[match.EventPhase] = appendIfMissing(groups[match.EventPhase], match.Teams[0].Name)
+		groups[match.EventPhase] = appendIfMissing(groups[match.EventPhase], match.Teams[0])
+		groups[match.EventPhase] = appendIfMissing(groups[match.EventPhase], match.Teams[1])
 	}
 
 	return groups[group], nil
 }
 
-func appendIfMissing(slice []string, i string) []string {
+func appendIfMissing(slice []TeamDetails, i TeamDetails) []TeamDetails {
 	for _, ele := range slice {
 		if ele == i {
 			return slice
 		}
 	}
 	return append(slice, i)
+}
+
+func getNextMatchesInGroup(group string, allJsonData AllJson) (matches []MatchDetails, err error) {
+	now := time.Now()
+	foundGroup := false
+
+	for _, match := range allJsonData.Matches {
+		if match.EventPhase == group {
+			foundGroup = true
+			startTime := time.Unix(0, match.Time.Millis*int64(time.Millisecond))
+			if now.Before(startTime) {
+				matches = append(matches, match)
+			}
+		}
+	}
+	if !foundGroup {
+		return matches, fmt.Errorf("%s is not in the world cup", country)
+	}
+	return matches, nil
 }
