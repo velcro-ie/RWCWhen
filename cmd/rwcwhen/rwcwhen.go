@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -55,7 +56,7 @@ func RunAll(country string, group string, matches bool, played bool, games bool)
 			printFutureMatches(matches)
 		}
 	} else if games {
-		matchDetails := getAllMatches(allJsonData, played)
+		matchDetails := getMatches(allJsonData, played)
 		if len(matchDetails) == 0 {
 			if played {
 				fmt.Println("The tournament has not started yet. No Matches have been played.")
@@ -171,7 +172,7 @@ func getNextMatchesInGroup(group string, allJsonData AllJson) (matches []MatchDe
 	return matches, nil
 }
 
-func getAllMatches(allJsonData AllJson, played bool) (matches []MatchDetails) {
+func getMatches(allJsonData AllJson, played bool) (matches []MatchDetails) {
 	var pastMatches []MatchDetails
 	var futureMatches []MatchDetails
 	now := time.Now()
@@ -188,6 +189,67 @@ func getAllMatches(allJsonData AllJson, played bool) (matches []MatchDetails) {
 		return pastMatches
 	}
 	return futureMatches
+}
+
+func getPoolStats(allJsonData AllJson) (groups map[string]CountryInPool, err error) {
+	allMatches := getMatches(allJsonData, true)
+	if err != nil {
+		return groups, fmt.Errorf("error getting the matches: %s", err)
+	}
+
+	for _, match := range allMatches {
+		poolName := match.EventPhase
+		if !strings.HasPrefix(poolName, "Pool") {
+			continue
+		}
+		_, ok := groups[poolName]
+		if !ok {
+			groups[poolName] = make(map[string]CountryStats)
+		}
+		var country1 CountryStats
+		var country2 CountryStats
+
+		diff := match.Scores[0] - match.Scores[1]
+		country1.PointDifference = diff
+		country2.PointDifference = -diff
+		country2.TotalPoints = match.Scores[0]
+		country2.TotalPoints = match.Scores[1]
+		if match.Scores[0] > match.Scores[1] {
+			country1.Won = 1
+			country2.Lost = 1
+		} else if match.Scores[0] > match.Scores[1] {
+			country1.Draw = 1
+			country2.Draw = 1
+		} else {
+			country1.Lost = 1
+			country2.Won = 0
+		}
+
+		_, ok = groups[poolName][match.Teams[0]]
+		if !ok {
+			groups[poolName][match.Teams[0]] = country1
+		} else {
+			groups[poolName][match.Teams[0]].Played += 1
+			groups[poolName][match.Teams[0]].Won += country1.Won
+			groups[poolName][match.Teams[0]].Lost += country1.Lost
+			groups[poolName][match.Teams[0]].Drae += country1.Draw
+			groups[poolName][match.Teams[0]].PointDifference += country1.PointDifference
+			groups[poolName][match.Teams[0]].totalPoints += country1.TotalPoints
+		}
+
+		_, ok = groups[poolName][match.Teams[1]]
+		if !ok {
+			groups[poolName][match.Teams[1]] = country2
+		} else {
+			groups[poolName][match.Teams[1]].Played += 1
+			groups[poolName][match.Teams[1]].Won += country2.Won
+			groups[poolName][match.Teams[1]].Lost += country2.Lost
+			groups[poolName][match.Teams[1]].Drae += country2.Draw
+			groups[poolName][match.Teams[1]].PointDifference += country2.PointDifference
+			groups[poolName][match.Teams[1]].totalPoints += country2.TotalPoints
+		}
+	}
+	return groups, nil
 }
 
 func printPastMatches(matches []MatchDetails) {

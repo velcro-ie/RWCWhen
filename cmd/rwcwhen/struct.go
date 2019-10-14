@@ -72,3 +72,29 @@ type BriefMatchDetails struct {
 	Venue    string      `json:"venue"`
 	Opponent string      `json:"opponent"`
 }
+
+type PoolDetails struct {
+	PoolName map[string]CountryInPool `json:"poolName"`
+}
+
+type CountryInPool struct {
+	CountryStats map[string]CountryStats `json:"countryStats"`
+}
+
+type CountryStats struct {
+	Played          int `json:"played"`
+	Won             int `json:"won"`
+	Lost            int `json:"lost"`
+	Draw            int `json:"draw`
+	PointDifference int `json:"pointDifference"`
+	TotalPoints     int `json:"totalPoints"`
+}
+
+func (cs *CountryStats) Init() {
+	cs.Played = 0
+	cs.Won = 0
+	cs.Lost = 0
+	cs.Draw = 0
+	cs.PointDifference = 0
+	cs.TotalPoints = 0
+}
