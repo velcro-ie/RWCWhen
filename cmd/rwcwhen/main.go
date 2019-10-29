@@ -14,6 +14,7 @@ var (
 	upcoming bool
 	played   bool
 	games    bool
+	table    bool
 )
 
 func init() {
@@ -22,6 +23,7 @@ func init() {
 	rootCmd.Flags().BoolVarP(&upcoming, "upcoming", "u", false, "return upcoming matches in a group")
 	rootCmd.Flags().BoolVarP(&games, "games", "m", false, "return all future games")
 	rootCmd.Flags().BoolVarP(&played, "Played", "p", false, "return all played matches (can be run for a country)")
+	rootCmd.Flags().BoolVarP(&table, "table", "t", false, "return the league table for a given group")
 }
 
 var rootCmd = &cobra.Command{
@@ -36,7 +38,7 @@ var rootCmd = &cobra.Command{
 }
 
 func run(cmd *cobra.Command, args []string) {
-	err := RunAll(country, group, upcoming, played, games)
+	err := RunAll(country, group, upcoming, played, games, table)
 	if err != nil {
 		log.Println(err)
 	}

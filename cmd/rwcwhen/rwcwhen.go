@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -15,7 +16,7 @@ var (
 	RwcWhenVersion string
 )
 
-func RunAll(country string, group string, matches bool, played bool, games bool) (err error) {
+func RunAll(country string, group string, matches bool, played bool, games bool, table bool) (err error) {
 	allJsonData, err := GetApiData()
 	if err != nil {
 		return err
@@ -35,7 +36,7 @@ func RunAll(country string, group string, matches bool, played bool, games bool)
 			fmt.Printf("%s's upcoming matches are \n", country)
 			printFutureMatches(matchDetails)
 		}
-	} else if group != "" && !matches {
+	} else if group != "" && !table {
 		teams, err := getTeamsInGroup(group, allJsonData)
 		if err != nil {
 			return err
@@ -44,7 +45,7 @@ func RunAll(country string, group string, matches bool, played bool, games bool)
 		for _, team := range teams {
 			fmt.Printf("%s, %s\n", team.Name, team.Abbreviation)
 		}
-	} else if group != "" && matches {
+	} else if group != "" && table {
 		matches, err := getNextMatchesInGroup(group, allJsonData)
 		if err != nil {
 			return err
@@ -153,23 +154,15 @@ func appendIfMissing(slice []TeamDetails, i TeamDetails) []TeamDetails {
 	return append(slice, i)
 }
 
-func getNextMatchesInGroup(group string, allJsonData AllJson) (matches []MatchDetails, err error) {
-	now := time.Now()
-	foundGroup := false
+func getNextMatchesInGroup(group string, allJsonData AllJson) (poolStats []MatchDetails, err error) {
 
-	for _, match := range allJsonData.Matches {
-		if match.EventPhase == group {
-			foundGroup = true
-			startTime := time.Unix(0, match.Time.Millis*int64(time.Millisecond))
-			if now.Before(startTime) {
-				matches = append(matches, match)
-			}
-		}
+	allPoolStats, err := getAllPoolStats(allJsonData)
+	_, ok := allPoolStats[group]
+	if !ok {
+		return poolStats, fmt.Errorf("%s is not a group", group)
 	}
-	if !foundGroup {
-		return matches, fmt.Errorf("%s is not in the world cup", country)
-	}
-	return matches, nil
+
+	return poolStats, nil
 }
 
 func getMatches(allJsonData AllJson, played bool) (matches []MatchDetails) {
@@ -191,7 +184,8 @@ func getMatches(allJsonData AllJson, played bool) (matches []MatchDetails) {
 	return futureMatches
 }
 
-func getPoolStats(allJsonData AllJson) (groups map[string]CountryInPool, err error) {
+func getAllPoolStats(allJsonData AllJson) (groups map[string]CountryInPool, err error) {
+	groups = make(map[string]CountryInPool)
 	allMatches := getMatches(allJsonData, true)
 	if err != nil {
 		return groups, fmt.Errorf("error getting the matches: %s", err)
@@ -202,13 +196,27 @@ func getPoolStats(allJsonData AllJson) (groups map[string]CountryInPool, err err
 		if !strings.HasPrefix(poolName, "Pool") {
 			continue
 		}
-		_, ok := groups[poolName]
-		if !ok {
-			groups[poolName] = make(map[string]CountryStats)
-		}
 		var country1 CountryStats
 		var country2 CountryStats
 
+		_, ok := groups[poolName]
+		if !ok {
+			ctryStats := CountryInPool{
+				CountryStats: map[string]CountryStats{
+					match.Teams[0].Name: country1,
+					match.Teams[1].Name: country2,
+				},
+			}
+			groups[poolName] = ctryStats
+		}
+		ctryName1 := match.Teams[0].Name
+		ctryName2 := match.Teams[0].Name
+		// _, ok = groups[poolName][ctryName1]
+		// _, ok = groups[poolName][ctryName2]
+		log.Println(groups[poolName])
+		log.Println(groups[poolName][ctryName1])
+		log.Println(groups[poolName][ctryName2])
+		// not working quite yet.  getting the map details from the map is a problem!!
 		diff := match.Scores[0] - match.Scores[1]
 		country1.PointDifference = diff
 		country2.PointDifference = -diff
@@ -224,30 +232,40 @@ func getPoolStats(allJsonData AllJson) (groups map[string]CountryInPool, err err
 			country1.Lost = 1
 			country2.Won = 0
 		}
+		// _, ok := groups[poolName]
+		// if !ok {
+		// 	ctryStats := CountryInPool{
+		// 		CountryStats: map[string]CountryStats{
+		// 			match.Teams[0].Name: country1,
+		// 			match.Teams[1].Name: country2,
+		// 		},
+		// 	}
+		// 	groups[poolName] = ctryStats
+		// }
+		// log.Println(groups[poolName])
+		// // _, ok = groups[poolName].[match.Teams[0].Name]
+		// if !ok {
+		// 	groups[poolName].[match.Teams[0].Name] = country1
+		// } else {
+		// 	groups[poolName].(match.Teams[0].Name).Played += 1
+		// 	groups[poolName].[match.Teams[0].Name].Won += country1.Won
+		// 	groups[poolName].[match.Teams[0].Name].Lost += country1.Lost
+		// 	groups[poolName].[match.Teams[0].Name].Drae += country1.Draw
+		// 	groups[poolName].[match.Teams[0].Name].PointDifference += country1.PointDifference
+		// 	groups[poolName].[match.Teams[0].Name].totalPoints += country1.TotalPoints
+		// }
 
-		_, ok = groups[poolName][match.Teams[0]]
-		if !ok {
-			groups[poolName][match.Teams[0]] = country1
-		} else {
-			groups[poolName][match.Teams[0]].Played += 1
-			groups[poolName][match.Teams[0]].Won += country1.Won
-			groups[poolName][match.Teams[0]].Lost += country1.Lost
-			groups[poolName][match.Teams[0]].Drae += country1.Draw
-			groups[poolName][match.Teams[0]].PointDifference += country1.PointDifference
-			groups[poolName][match.Teams[0]].totalPoints += country1.TotalPoints
-		}
-
-		_, ok = groups[poolName][match.Teams[1]]
-		if !ok {
-			groups[poolName][match.Teams[1]] = country2
-		} else {
-			groups[poolName][match.Teams[1]].Played += 1
-			groups[poolName][match.Teams[1]].Won += country2.Won
-			groups[poolName][match.Teams[1]].Lost += country2.Lost
-			groups[poolName][match.Teams[1]].Drae += country2.Draw
-			groups[poolName][match.Teams[1]].PointDifference += country2.PointDifference
-			groups[poolName][match.Teams[1]].totalPoints += country2.TotalPoints
-		}
+		// _, ok = groups[poolName].[match.Teams[1].Name]
+		// if !ok {
+		// 	groups[poolName].[match.Teams[1].Name] = country2
+		// } else {
+		// 	groups[poolName].[match.Teams[1].Name].Played += 1
+		// 	groups[poolName].[match.Teams[1].Name].Won += country2.Won
+		// 	groups[poolName].[match.Teams[1].Name].Lost += country2.Lost
+		// 	groups[poolName].[match.Teams[1].Name].Drae += country2.Draw
+		// 	groups[poolName].[match.Teams[1].Name].PointDifference += country2.PointDifference
+		// 	groups[poolName].[match.Teams[1].Name].totalPoints += country2.TotalPoints
+		// }
 	}
 	return groups, nil
 }
