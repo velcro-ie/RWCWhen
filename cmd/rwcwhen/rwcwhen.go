@@ -213,9 +213,11 @@ func getAllPoolStats(allJsonData AllJson) (groups map[string]CountryInPool, err 
 		ctryName2 := match.Teams[0].Name
 		// _, ok = groups[poolName][ctryName1]
 		// _, ok = groups[poolName][ctryName2]
+		pool := groups[poolName]
 		log.Println(groups[poolName])
-		log.Println(groups[poolName][ctryName1])
-		log.Println(groups[poolName][ctryName2])
+		log.Println(pool)
+		log.Println(pool[ctryName1])
+		log.Println(pool[ctryName2])
 		// not working quite yet.  getting the map details from the map is a problem!!
 		diff := match.Scores[0] - match.Scores[1]
 		country1.PointDifference = diff
